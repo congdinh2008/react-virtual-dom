@@ -21,17 +21,40 @@ interface MilkImage {
 const MilkItem = ({
   milk,
   onRemove,
-  onOrderChange
+  onOrderChange,
+  useColorfulStyles
 }: {
   milk: Milk,
   onRemove: (id: string) => void,
-  onOrderChange: (id: string, change: number) => void
+  onOrderChange: (id: string, change: number) => void,
+  useColorfulStyles: boolean
 }) => {
-  // Xác định class dựa trên thuộc tính chất lượng
+  // Xác định class dựa trên thuộc tính chất lượng và tùy chọn style
   const getMilkItemBgClass = () => {
+    if (!useColorfulStyles) {
+      return 'border-l-4 border-l-gray-300 bg-white';
+    }
+
     if (milk.isBribed) return 'border-l-4 border-l-red-500 bg-red-50';
     if (milk.isQualityTested) return 'border-l-4 border-l-green-500 bg-green-50';
     return 'border-l-4 border-l-yellow-500 bg-yellow-50';
+  };
+
+  // Xác định class cho badge dựa trên thuộc tính chất lượng và tùy chọn style
+  const getQualityBadgeClass = () => {
+    if (!useColorfulStyles) {
+      return 'bg-gray-500 text-white';
+    }
+
+    return milk.isQualityTested ? 'bg-green-500 text-white' : 'bg-yellow-500 text-gray-800';
+  };
+
+  const getBribedBadgeClass = () => {
+    if (!useColorfulStyles) {
+      return 'bg-gray-500 text-white';
+    }
+
+    return milk.isBribed ? 'bg-red-500 text-white' : 'bg-green-500 text-white';
   };
 
   return (
@@ -49,11 +72,11 @@ const MilkItem = ({
         <h3 className="text-xl font-semibold text-gray-800 mb-1">{milk.name}</h3>
         <p className="text-gray-600 text-sm leading-relaxed mb-2">{milk.description}</p>
         <div className="flex flex-wrap gap-2">
-          <span className={`inline-block text-xs px-2 py-1 rounded-full font-medium ${milk.isQualityTested ? 'bg-green-500 text-white' : 'bg-yellow-500 text-gray-800'}`}>
+          <span className={`inline-block text-xs px-2 py-1 rounded-full font-medium ${getQualityBadgeClass()}`}>
             {milk.isQualityTested ? 'Đã kiểm định chất lượng' : 'Chưa kiểm định'}
           </span>
 
-          <span className={`inline-block text-xs px-2 py-1 rounded-full font-medium ${milk.isBribed ? 'bg-red-500 text-white' : 'bg-green-500 text-white'}`}>
+          <span className={`inline-block text-xs px-2 py-1 rounded-full font-medium ${getBribedBadgeClass()}`}>
             {milk.isBribed ? 'Chất lượng không đảm bảo' : 'Chất lượng tiêu chuẩn'}
           </span>
         </div>
@@ -100,6 +123,58 @@ const MilkList = ({
   onRemove: (id: string) => void,
   onOrderChange: (id: string, change: number) => void
 }) => {
+  // State cho việc hiển thị theo màu sắc phân biệt
+  const [useColorfulStyles, setUseColorfulStyles] = useState(true);
+  
+  // State cho tìm kiếm và lọc
+  const [searchTerm, setSearchTerm] = useState('');
+  const [qualityFilter, setQualityFilter] = useState('all'); // 'all', 'tested', 'untested'
+  const [bribedFilter, setBribedFilter] = useState('all'); // 'all', 'bribed', 'standard'
+  const [sortBy, setSortBy] = useState('name'); // 'name', 'orders'
+  
+  // Lọc và sắp xếp danh sách sữa
+  const filteredAndSortedMilks = () => {
+    let result = [...milks];
+    
+    // Tìm kiếm theo tên hoặc mô tả
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      result = result.filter(milk => 
+        milk.name.toLowerCase().includes(term) || 
+        milk.description.toLowerCase().includes(term)
+      );
+    }
+    
+    // Lọc theo trạng thái kiểm định
+    if (qualityFilter !== 'all') {
+      result = result.filter(milk => 
+        (qualityFilter === 'tested' && milk.isQualityTested) ||
+        (qualityFilter === 'untested' && !milk.isQualityTested)
+      );
+    }
+    
+    // Lọc theo trạng thái hối lộ
+    if (bribedFilter !== 'all') {
+      result = result.filter(milk => 
+        (bribedFilter === 'bribed' && milk.isBribed) ||
+        (bribedFilter === 'standard' && !milk.isBribed)
+      );
+    }
+    
+    // Sắp xếp
+    result.sort((a, b) => {
+      if (sortBy === 'orders') {
+        return b.numberOfOrder - a.numberOfOrder;
+      }
+      // Mặc định sắp xếp theo tên
+      return a.name.localeCompare(b.name);
+    });
+    
+    return result;
+  };
+  
+  const displayedMilks = filteredAndSortedMilks();
+
   if (milks.length === 0) {
     return <p className="text-gray-500 italic">Chưa có sản phẩm sữa nào được thêm vào.</p>;
   }
@@ -107,14 +182,99 @@ const MilkList = ({
   return (
     <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-t-red-500">
       <h2 className="text-2xl font-bold text-red-600 mb-4 text-left">Danh sách sản phẩm sữa</h2>
-      {milks.map(milk => (
-        <MilkItem
-          key={milk.id}
-          milk={milk}
-          onRemove={onRemove}
-          onOrderChange={onOrderChange}
-        />
-      ))}
+      
+      {/* Bộ lọc và tìm kiếm */}
+      <div className="mb-6 border-b border-gray-200 pb-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-1">Tìm kiếm:</label>
+            <input
+              type="text"
+              id="search"
+              placeholder="Nhập tên hoặc mô tả..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="sortBy" className="block text-sm font-medium text-gray-700 mb-1">Sắp xếp theo:</label>
+            <select
+              id="sortBy"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent appearance-none bg-white bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 20 20%22%3E%3Cpath stroke=%22%236b7280%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22 stroke-width=%221.5%22 d=%22m6 8 4 4 4-4%22/%3E%3C/svg%3E')] bg-[length:1.25rem_1.25rem] bg-no-repeat bg-[right_0.5rem_center] pr-10"
+            >
+              <option value="name">Tên sản phẩm</option>
+              <option value="orders">Số lượng đặt hàng</option>
+            </select>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label htmlFor="qualityFilter" className="block text-sm font-medium text-gray-700 mb-1">Lọc theo kiểm định:</label>
+            <select
+              id="qualityFilter"
+              value={qualityFilter}
+              onChange={(e) => setQualityFilter(e.target.value)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent appearance-none bg-white bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 20 20%22%3E%3Cpath stroke=%22%236b7280%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22 stroke-width=%221.5%22 d=%22m6 8 4 4 4-4%22/%3E%3C/svg%3E')] bg-[length:1.25rem_1.25rem] bg-no-repeat bg-[right_0.5rem_center] pr-10"
+            >
+              <option value="all">Tất cả sản phẩm</option>
+              <option value="tested">Đã kiểm định</option>
+              <option value="untested">Chưa kiểm định</option>
+            </select>
+          </div>
+          
+          <div>
+            <label htmlFor="bribedFilter" className="block text-sm font-medium text-gray-700 mb-1">Lọc theo chất lượng:</label>
+            <select
+              id="bribedFilter"
+              value={bribedFilter}
+              onChange={(e) => setBribedFilter(e.target.value)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent appearance-none bg-white bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 20 20%22%3E%3Cpath stroke=%22%236b7280%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22 stroke-width=%221.5%22 d=%22m6 8 4 4 4-4%22/%3E%3C/svg%3E')] bg-[length:1.25rem_1.25rem] bg-no-repeat bg-[right_0.5rem_center] pr-10"
+            >
+              <option value="all">Tất cả sản phẩm</option>
+              <option value="standard">Chất lượng tiêu chuẩn</option>
+              <option value="bribed">Chất lượng không đảm bảo</option>
+            </select>
+          </div>
+          
+          <div className="flex items-center">
+            <input
+              id="useColorfulStyles"
+              type="checkbox"
+              checked={useColorfulStyles}
+              onChange={(e) => setUseColorfulStyles(e.target.checked)}
+              className="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500 mr-2"
+            />
+            <label htmlFor="useColorfulStyles" className="text-sm font-medium text-gray-700">
+              Hiển thị phân biệt theo chất lượng
+            </label>
+          </div>
+        </div>
+      </div>
+      
+      {/* Hiển thị số lượng kết quả */}
+      <p className="text-sm text-gray-500 mb-4">
+        Hiển thị {displayedMilks.length} / {milks.length} sản phẩm
+      </p>
+      
+      {/* Danh sách sản phẩm */}
+      {displayedMilks.length > 0 ? (
+        displayedMilks.map(milk => (
+          <MilkItem
+            key={milk.id}
+            milk={milk}
+            onRemove={onRemove}
+            onOrderChange={onOrderChange}
+            useColorfulStyles={useColorfulStyles}
+          />
+        ))
+      ) : (
+        <p className="text-gray-500 italic py-4">Không tìm thấy sản phẩm nào phù hợp với bộ lọc.</p>
+      )}
     </div>
   );
 };
@@ -127,14 +287,15 @@ function App() {
   const [selectedImage, setSelectedImage] = useState('');
   const [isQualityTested, setIsQualityTested] = useState(true);
   const [isBribed, setIsBribed] = useState(false);
-
+  
   // State cho danh sách sữa
   const [milks, setMilks] = useState<Milk[]>([]);
-
+  
   // Danh sách hình ảnh có sẵn
   const [availableImages] = useState<MilkImage[]>([
     { name: "Abbott Grow", path: "/src/assets/images/abbott-grow.jpg" },
     { name: "Cô Gái Hà Lan", path: "/src/assets/images/co-gai-ha-lan.jpg" },
+    { name: "Enlene", path: "/src/assets/images/enlene.jpg" },
     { name: "Ensure UC", path: "/src/assets/images/ensure-uc.jpg" },
     { name: "Hofumil (Hàng giả)", path: "/src/assets/images/hofumil-fake.webp" },
     { name: "Nitrogen (Hàng giả)", path: "/src/assets/images/nitrogen-fake.jpeg" },
@@ -154,12 +315,12 @@ function App() {
   // Thêm sản phẩm sữa mới
   const handleAddMilk = (e: React.FormEvent) => {
     e.preventDefault();
-
+    
     if (!name.trim() || !description.trim() || !imageUrl.trim()) {
       alert('Vui lòng điền đầy đủ thông tin');
       return;
     }
-
+    
     const newMilk: Milk = {
       id: Date.now().toString(),
       name,
@@ -169,9 +330,9 @@ function App() {
       isQualityTested,
       isBribed
     };
-
+    
     setMilks([...milks, newMilk]);
-
+    
     // Reset form
     setName('');
     setDescription('');
@@ -188,20 +349,20 @@ function App() {
 
   // Thay đổi số lượng đặt hàng
   const handleOrderChange = (id: string, change: number) => {
-    setMilks(milks.map(milk =>
-      milk.id === id
-        ? {
-          ...milk,
-          numberOfOrder: Math.max(0, milk.numberOfOrder + change)
-        }
+    setMilks(milks.map(milk => 
+      milk.id === id 
+        ? { 
+            ...milk, 
+            numberOfOrder: Math.max(0, milk.numberOfOrder + change) 
+          } 
         : milk
     ));
   };
 
   return (
     <div className="w-full max-w-5xl mx-auto p-4 md:p-6">
-      <h1 className="text-3xl font-bold text-center text-gray-800 mb-8">Thị Trường Sữa</h1>
-
+      <h1 className="text-3xl font-bold text-center text-gray-800 mb-4">Thị Trường Sữa</h1>
+      
       <div className="bg-white p-6 rounded-xl shadow-md mb-8 border-t-4 border-t-blue-500">
         <form onSubmit={handleAddMilk}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -217,7 +378,7 @@ function App() {
                 required
               />
             </div>
-
+            
             <div className="flex flex-col">
               <label htmlFor="imageSelect" className="text-sm font-semibold text-gray-700 mb-1">Chọn Hình Ảnh</label>
               <select
@@ -234,7 +395,7 @@ function App() {
                 ))}
               </select>
             </div>
-
+            
             <div className="flex flex-col col-span-full">
               <label htmlFor="description" className="text-sm font-semibold text-gray-700 mb-1">Mô Tả</label>
               <textarea
@@ -247,7 +408,7 @@ function App() {
                 required
               />
             </div>
-
+            
             <div className="flex flex-col">
               <label htmlFor="imageUrl" className="text-sm font-semibold text-gray-700 mb-1">URL Hình Ảnh (tùy chọn)</label>
               <input
@@ -259,19 +420,19 @@ function App() {
                 placeholder="Nhập URL hình ảnh"
               />
             </div>
-
+            
             <div className="flex flex-col justify-end">
               {selectedImage && (
                 <div className="flex flex-col items-start mt-2">
-                  <img
-                    src={selectedImage}
-                    alt="Ảnh xem trước"
-                    className="w-20 h-20 object-cover rounded-md shadow-sm"
+                  <img 
+                    src={selectedImage} 
+                    alt="Ảnh xem trước" 
+                    className="w-20 h-20 object-cover rounded-md shadow-sm" 
                   />
                 </div>
               )}
             </div>
-
+            
             <div className="col-span-full">
               <div className="flex flex-wrap gap-6">
                 <div className="flex items-start">
@@ -284,9 +445,10 @@ function App() {
                   />
                   <div>
                     <label htmlFor="isQualityTested" className="font-medium text-gray-700">Đã kiểm định chất lượng</label>
+                    <p className="text-xs text-gray-500 italic mt-0.5">Quản lý thị trường đã ghé thăm</p>
                   </div>
                 </div>
-
+                
                 <div className="flex items-start">
                   <input
                     id="isBribed"
@@ -296,15 +458,16 @@ function App() {
                     onChange={(e) => setIsBribed(e.target.checked)}
                   />
                   <div>
-                    <label htmlFor="isBribed" className="font-medium text-gray-700">Chất lượng không đảm bảo (Đã hối lộ thành công)</label>
+                    <label htmlFor="isBribed" className="font-medium text-gray-700">Chất lượng không đảm bảo</label>
+                    <p className="text-xs text-gray-500 italic mt-0.5">Quản lý thị trường quên ghé thăm từ 2021</p>
                   </div>
                 </div>
               </div>
             </div>
-
+            
             <div className="col-span-full mt-2">
-              <button
-                type="submit"
+              <button 
+                type="submit" 
                 className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-6 rounded-md font-semibold transition-colors shadow-sm"
               >
                 Thêm Sản Phẩm
@@ -313,10 +476,10 @@ function App() {
           </div>
         </form>
       </div>
-
-      <MilkList
-        milks={milks}
-        onRemove={handleRemoveMilk}
+      
+      <MilkList 
+        milks={milks} 
+        onRemove={handleRemoveMilk} 
         onOrderChange={handleOrderChange}
       />
     </div>
