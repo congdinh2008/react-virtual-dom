@@ -1,35 +1,326 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useState, useEffect } from 'react'
 
-function App() {
-  const [count, setCount] = useState(0)
+// Cấu trúc dữ liệu sản phẩm sữa
+interface Milk {
+  id: string;
+  name: string;
+  description: string;
+  imageUrl: string;
+  numberOfOrder: number;
+  isQualityTested: boolean;
+  isBribed: boolean;
+}
+
+// Danh sách ảnh có sẵn trong thư mục assets/images
+interface MilkImage {
+  name: string; // Tên hiển thị
+  path: string; // Đường dẫn tới file ảnh
+}
+
+// Component hiển thị chi tiết sản phẩm sữa
+const MilkItem = ({
+  milk,
+  onRemove,
+  onOrderChange
+}: {
+  milk: Milk,
+  onRemove: (id: string) => void,
+  onOrderChange: (id: string, change: number) => void
+}) => {
+  // Xác định class dựa trên thuộc tính chất lượng
+  const getMilkItemBgClass = () => {
+    if (milk.isBribed) return 'border-l-4 border-l-red-500 bg-red-50';
+    if (milk.isQualityTested) return 'border-l-4 border-l-green-500 bg-green-50';
+    return 'border-l-4 border-l-yellow-500 bg-yellow-50';
+  };
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <div className={`flex p-4 my-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all ${getMilkItemBgClass()}`}>
+      <img
+        src={milk.imageUrl}
+        alt={milk.name}
+        className="w-24 h-24 object-cover rounded-lg mr-4 shadow-sm"
+        onError={(e) => {
+          (e.target as HTMLImageElement).src = 'https://via.placeholder.com/120x120?text=Không+có+ảnh';
+        }}
+      />
+
+      <div className="flex-1 flex flex-col justify-center text-left">
+        <h3 className="text-xl font-semibold text-gray-800 mb-1">{milk.name}</h3>
+        <p className="text-gray-600 text-sm leading-relaxed mb-2">{milk.description}</p>
+        <div className="flex flex-wrap gap-2">
+          <span className={`inline-block text-xs px-2 py-1 rounded-full font-medium ${milk.isQualityTested ? 'bg-green-500 text-white' : 'bg-yellow-500 text-gray-800'}`}>
+            {milk.isQualityTested ? 'Đã kiểm định chất lượng' : 'Chưa kiểm định'}
+          </span>
+
+          <span className={`inline-block text-xs px-2 py-1 rounded-full font-medium ${milk.isBribed ? 'bg-red-500 text-white' : 'bg-green-500 text-white'}`}>
+            {milk.isBribed ? 'Chất lượng không đảm bảo' : 'Chất lượng tiêu chuẩn'}
+          </span>
+        </div>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
+
+      <div className="flex flex-col justify-center items-center gap-3 w-28">
+        <button
+          onClick={() => onRemove(milk.id)}
+          className="w-full bg-red-500 hover:bg-red-600 text-white py-1.5 px-3 rounded text-sm font-medium transition-colors"
+        >
+          Xóa
         </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
+
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => onOrderChange(milk.id, -1)}
+            disabled={milk.numberOfOrder <= 0}
+            className="flex items-center justify-center w-7 h-7 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-full font-bold transition-colors"
+          >
+            -
+          </button>
+
+          <span className="mx-2 font-bold text-gray-700 min-w-6 text-center">{milk.numberOfOrder}</span>
+
+          <button
+            onClick={() => onOrderChange(milk.id, 1)}
+            className="flex items-center justify-center w-7 h-7 bg-blue-500 hover:bg-blue-600 text-white rounded-full font-bold transition-colors"
+          >
+            +
+          </button>
+        </div>
       </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    </div>
+  );
+};
+
+// Component hiển thị danh sách sản phẩm sữa
+const MilkList = ({
+  milks,
+  onRemove,
+  onOrderChange
+}: {
+  milks: Milk[],
+  onRemove: (id: string) => void,
+  onOrderChange: (id: string, change: number) => void
+}) => {
+  if (milks.length === 0) {
+    return <p className="text-gray-500 italic">Chưa có sản phẩm sữa nào được thêm vào.</p>;
+  }
+
+  return (
+    <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-t-red-500">
+      <h2 className="text-2xl font-bold text-red-600 mb-4 text-left">Danh sách sản phẩm sữa</h2>
+      {milks.map(milk => (
+        <MilkItem
+          key={milk.id}
+          milk={milk}
+          onRemove={onRemove}
+          onOrderChange={onOrderChange}
+        />
+      ))}
+    </div>
+  );
+};
+
+function App() {
+  // State cho form nhập thông tin sữa
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const [selectedImage, setSelectedImage] = useState('');
+  const [isQualityTested, setIsQualityTested] = useState(true);
+  const [isBribed, setIsBribed] = useState(false);
+
+  // State cho danh sách sữa
+  const [milks, setMilks] = useState<Milk[]>([]);
+
+  // Danh sách hình ảnh có sẵn
+  const [availableImages] = useState<MilkImage[]>([
+    { name: "Abbott Grow", path: "/src/assets/images/abbott-grow.jpg" },
+    { name: "Cô Gái Hà Lan", path: "/src/assets/images/co-gai-ha-lan.jpg" },
+    { name: "Ensure UC", path: "/src/assets/images/ensure-uc.jpg" },
+    { name: "Hofumil (Hàng giả)", path: "/src/assets/images/hofumil-fake.webp" },
+    { name: "Nitrogen (Hàng giả)", path: "/src/assets/images/nitrogen-fake.jpeg" },
+    { name: "Nutifood Grow Plus", path: "/src/assets/images/nutifood-grow-plus.jpg" },
+    { name: "Soramilk (Hàng giả)", path: "/src/assets/images/soramilk-fake.jpg" },
+    { name: "Sure IQ (Hàng giả)", path: "/src/assets/images/sure-iq-fake.jpg" },
+    { name: "TH True Milk", path: "/src/assets/images/th-true-milk.jpeg" }
+  ]);
+
+  // Cập nhật URL ảnh khi chọn ảnh từ danh sách
+  useEffect(() => {
+    if (selectedImage) {
+      setImageUrl(selectedImage);
+    }
+  }, [selectedImage]);
+
+  // Thêm sản phẩm sữa mới
+  const handleAddMilk = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!name.trim() || !description.trim() || !imageUrl.trim()) {
+      alert('Vui lòng điền đầy đủ thông tin');
+      return;
+    }
+
+    const newMilk: Milk = {
+      id: Date.now().toString(),
+      name,
+      description,
+      imageUrl,
+      numberOfOrder: 0,
+      isQualityTested,
+      isBribed
+    };
+
+    setMilks([...milks, newMilk]);
+
+    // Reset form
+    setName('');
+    setDescription('');
+    setImageUrl('');
+    setSelectedImage('');
+    setIsQualityTested(true);
+    setIsBribed(false);
+  };
+
+  // Xóa sản phẩm sữa
+  const handleRemoveMilk = (id: string) => {
+    setMilks(milks.filter(milk => milk.id !== id));
+  };
+
+  // Thay đổi số lượng đặt hàng
+  const handleOrderChange = (id: string, change: number) => {
+    setMilks(milks.map(milk =>
+      milk.id === id
+        ? {
+          ...milk,
+          numberOfOrder: Math.max(0, milk.numberOfOrder + change)
+        }
+        : milk
+    ));
+  };
+
+  return (
+    <div className="w-full max-w-5xl mx-auto p-4 md:p-6">
+      <h1 className="text-3xl font-bold text-center text-gray-800 mb-8">Thị Trường Sữa</h1>
+
+      <div className="bg-white p-6 rounded-xl shadow-md mb-8 border-t-4 border-t-blue-500">
+        <form onSubmit={handleAddMilk}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex flex-col">
+              <label htmlFor="name" className="text-sm font-semibold text-gray-700 mb-1">Tên Sản Phẩm</label>
+              <input
+                id="name"
+                type="text"
+                className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Nhập tên sản phẩm sữa"
+                required
+              />
+            </div>
+
+            <div className="flex flex-col">
+              <label htmlFor="imageSelect" className="text-sm font-semibold text-gray-700 mb-1">Chọn Hình Ảnh</label>
+              <select
+                id="imageSelect"
+                className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition appearance-none bg-white bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 20 20%22%3E%3Cpath stroke=%22%236b7280%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22 stroke-width=%221.5%22 d=%22m6 8 4 4 4-4%22/%3E%3C/svg%3E')] bg-[length:1.25rem_1.25rem] bg-no-repeat bg-[right_0.5rem_center] pr-10"
+                value={selectedImage}
+                onChange={(e) => setSelectedImage(e.target.value)}
+              >
+                <option value="">-- Chọn ảnh --</option>
+                {availableImages.map((img, index) => (
+                  <option key={index} value={img.path}>
+                    {img.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex flex-col col-span-full">
+              <label htmlFor="description" className="text-sm font-semibold text-gray-700 mb-1">Mô Tả</label>
+              <textarea
+                id="description"
+                className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition min-h-24 resize-y"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Nhập mô tả sản phẩm sữa"
+                rows={2}
+                required
+              />
+            </div>
+
+            <div className="flex flex-col">
+              <label htmlFor="imageUrl" className="text-sm font-semibold text-gray-700 mb-1">URL Hình Ảnh (tùy chọn)</label>
+              <input
+                id="imageUrl"
+                type="text"
+                className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                placeholder="Nhập URL hình ảnh"
+              />
+            </div>
+
+            <div className="flex flex-col justify-end">
+              {selectedImage && (
+                <div className="flex flex-col items-start mt-2">
+                  <img
+                    src={selectedImage}
+                    alt="Ảnh xem trước"
+                    className="w-20 h-20 object-cover rounded-md shadow-sm"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="col-span-full">
+              <div className="flex flex-wrap gap-6">
+                <div className="flex items-start">
+                  <input
+                    id="isQualityTested"
+                    type="checkbox"
+                    className="mt-1 mr-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    checked={isQualityTested}
+                    onChange={(e) => setIsQualityTested(e.target.checked)}
+                  />
+                  <div>
+                    <label htmlFor="isQualityTested" className="font-medium text-gray-700">Đã kiểm định chất lượng</label>
+                  </div>
+                </div>
+
+                <div className="flex items-start">
+                  <input
+                    id="isBribed"
+                    type="checkbox"
+                    className="mt-1 mr-2 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    checked={isBribed}
+                    onChange={(e) => setIsBribed(e.target.checked)}
+                  />
+                  <div>
+                    <label htmlFor="isBribed" className="font-medium text-gray-700">Chất lượng không đảm bảo (Đã hối lộ thành công)</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="col-span-full mt-2">
+              <button
+                type="submit"
+                className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-6 rounded-md font-semibold transition-colors shadow-sm"
+              >
+                Thêm Sản Phẩm
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <MilkList
+        milks={milks}
+        onRemove={handleRemoveMilk}
+        onOrderChange={handleOrderChange}
+      />
+    </div>
+  );
 }
 
 export default App
