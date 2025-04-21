@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 
 // Cấu trúc dữ liệu sản phẩm sữa
-interface Milk {
+interface Product {
   id: string;
   name: string;
   description: string;
@@ -12,31 +12,31 @@ interface Milk {
 }
 
 // Danh sách ảnh có sẵn trong thư mục assets/images
-interface MilkImage {
+interface ProductImage {
   name: string; // Tên hiển thị
   path: string; // Đường dẫn tới file ảnh
 }
 
 // Component hiển thị chi tiết sản phẩm sữa
-const MilkItem = ({
-  milk,
+const Item = ({
+  item,
   onRemove,
   onOrderChange,
   useColorfulStyles
 }: {
-  milk: Milk,
+  item: Product,
   onRemove: (id: string) => void,
   onOrderChange: (id: string, change: number) => void,
   useColorfulStyles: boolean
 }) => {
   // Xác định class dựa trên thuộc tính chất lượng và tùy chọn style
-  const getMilkItemBgClass = () => {
+  const getItemBgClass = () => {
     if (!useColorfulStyles) {
       return 'border-l-4 border-l-gray-300 bg-white';
     }
 
-    if (milk.isBribed) return 'border-l-4 border-l-red-500 bg-red-50';
-    if (milk.isQualityTested) return 'border-l-4 border-l-green-500 bg-green-50';
+    if (item.isBribed) return 'border-l-4 border-l-red-500 bg-red-50';
+    if (item.isQualityTested) return 'border-l-4 border-l-green-500 bg-green-50';
     return 'border-l-4 border-l-yellow-500 bg-yellow-50';
   };
 
@@ -46,7 +46,7 @@ const MilkItem = ({
       return 'bg-gray-500 text-white';
     }
 
-    return milk.isQualityTested ? 'bg-green-500 text-white' : 'bg-yellow-500 text-gray-800';
+    return item.isQualityTested ? 'bg-green-500 text-white' : 'bg-yellow-500 text-gray-800';
   };
 
   const getBribedBadgeClass = () => {
@@ -54,14 +54,14 @@ const MilkItem = ({
       return 'bg-gray-500 text-white';
     }
 
-    return milk.isBribed ? 'bg-red-500 text-white' : 'bg-green-500 text-white';
+    return item.isBribed ? 'bg-red-500 text-white' : 'bg-green-500 text-white';
   };
 
   return (
-    <div className={`flex p-4 my-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all ${getMilkItemBgClass()}`}>
+    <div className={`flex p-4 my-4 rounded-lg border border-gray-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all ${getItemBgClass()}`}>
       <img
-        src={milk.imageUrl}
-        alt={milk.name}
+        src={item.imageUrl}
+        alt={item.name}
         className="w-24 h-24 object-cover rounded-lg mr-4 shadow-sm"
         onError={(e) => {
           (e.target as HTMLImageElement).src = 'https://via.placeholder.com/120x120?text=Không+có+ảnh';
@@ -69,22 +69,22 @@ const MilkItem = ({
       />
 
       <div className="flex-1 flex flex-col justify-center text-left">
-        <h3 className="text-xl font-semibold text-gray-800 mb-1">{milk.name}</h3>
-        <p className="text-gray-600 text-sm leading-relaxed mb-2">{milk.description}</p>
+        <h3 className="text-xl font-semibold text-gray-800 mb-1">{item.name}</h3>
+        <p className="text-gray-600 text-sm leading-relaxed mb-2">{item.description}</p>
         <div className="flex flex-wrap gap-2">
           <span className={`inline-block text-xs px-2 py-1 rounded-full font-medium ${getQualityBadgeClass()}`}>
-            {milk.isQualityTested ? 'Đã kiểm định chất lượng' : 'Chưa kiểm định'}
+            {item.isQualityTested ? 'Đã kiểm định chất lượng' : 'Chưa kiểm định'}
           </span>
 
           <span className={`inline-block text-xs px-2 py-1 rounded-full font-medium ${getBribedBadgeClass()}`}>
-            {milk.isBribed ? 'Chất lượng không đảm bảo' : 'Chất lượng tiêu chuẩn'}
+            {item.isBribed ? 'Chất lượng không đảm bảo' : 'Chất lượng tiêu chuẩn'}
           </span>
         </div>
       </div>
 
       <div className="flex flex-col justify-center items-center gap-3 w-28">
         <button
-          onClick={() => onRemove(milk.id)}
+          onClick={() => onRemove(item.id)}
           className="w-full bg-red-500 hover:bg-red-600 text-white py-1.5 px-3 rounded text-sm font-medium transition-colors"
         >
           Xóa
@@ -92,17 +92,17 @@ const MilkItem = ({
 
         <div className="flex items-center gap-1">
           <button
-            onClick={() => onOrderChange(milk.id, -1)}
-            disabled={milk.numberOfOrder <= 0}
+            onClick={() => onOrderChange(item.id, -1)}
+            disabled={item.numberOfOrder <= 0}
             className="flex items-center justify-center w-7 h-7 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-full font-bold transition-colors"
           >
             -
           </button>
 
-          <span className="mx-2 font-bold text-gray-700 min-w-6 text-center">{milk.numberOfOrder}</span>
+          <span className="mx-2 font-bold text-gray-700 min-w-6 text-center">{item.numberOfOrder}</span>
 
           <button
-            onClick={() => onOrderChange(milk.id, 1)}
+            onClick={() => onOrderChange(item.id, 1)}
             className="flex items-center justify-center w-7 h-7 bg-blue-500 hover:bg-blue-600 text-white rounded-full font-bold transition-colors"
           >
             +
@@ -114,53 +114,53 @@ const MilkItem = ({
 };
 
 // Component hiển thị danh sách sản phẩm sữa
-const MilkList = ({
-  milks,
+const List = ({
+  items,
   onRemove,
   onOrderChange
 }: {
-  milks: Milk[],
+  items: Product[],
   onRemove: (id: string) => void,
   onOrderChange: (id: string, change: number) => void
 }) => {
   // State cho việc hiển thị theo màu sắc phân biệt
   const [useColorfulStyles, setUseColorfulStyles] = useState(true);
-  
+
   // State cho tìm kiếm và lọc
   const [searchTerm, setSearchTerm] = useState('');
   const [qualityFilter, setQualityFilter] = useState('all'); // 'all', 'tested', 'untested'
   const [bribedFilter, setBribedFilter] = useState('all'); // 'all', 'bribed', 'standard'
   const [sortBy, setSortBy] = useState('name'); // 'name', 'orders'
-  
+
   // Lọc và sắp xếp danh sách sữa
-  const filteredAndSortedMilks = () => {
-    let result = [...milks];
-    
+  const filteredAndSortedItems = () => {
+    let result = [...items];
+
     // Tìm kiếm theo tên hoặc mô tả
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
-      result = result.filter(milk => 
-        milk.name.toLowerCase().includes(term) || 
-        milk.description.toLowerCase().includes(term)
+      result = result.filter(item =>
+        item.name.toLowerCase().includes(term) ||
+        item.description.toLowerCase().includes(term)
       );
     }
-    
+
     // Lọc theo trạng thái kiểm định
     if (qualityFilter !== 'all') {
-      result = result.filter(milk => 
-        (qualityFilter === 'tested' && milk.isQualityTested) ||
-        (qualityFilter === 'untested' && !milk.isQualityTested)
+      result = result.filter(item =>
+        (qualityFilter === 'tested' && item.isQualityTested) ||
+        (qualityFilter === 'untested' && !item.isQualityTested)
       );
     }
-    
+
     // Lọc theo trạng thái hối lộ
     if (bribedFilter !== 'all') {
-      result = result.filter(milk => 
-        (bribedFilter === 'bribed' && milk.isBribed) ||
-        (bribedFilter === 'standard' && !milk.isBribed)
+      result = result.filter(item =>
+        (bribedFilter === 'bribed' && item.isBribed) ||
+        (bribedFilter === 'standard' && !item.isBribed)
       );
     }
-    
+
     // Sắp xếp
     result.sort((a, b) => {
       if (sortBy === 'orders') {
@@ -169,20 +169,20 @@ const MilkList = ({
       // Mặc định sắp xếp theo tên
       return a.name.localeCompare(b.name);
     });
-    
+
     return result;
   };
-  
-  const displayedMilks = filteredAndSortedMilks();
 
-  if (milks.length === 0) {
+  const displayedItems = filteredAndSortedItems();
+
+  if (items.length === 0) {
     return <p className="text-gray-500 italic">Chưa có sản phẩm sữa nào được thêm vào.</p>;
   }
 
   return (
     <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-t-red-500">
       <h2 className="text-2xl font-bold text-red-600 mb-4 text-left">Danh sách sản phẩm sữa</h2>
-      
+
       {/* Bộ lọc và tìm kiếm */}
       <div className="mb-6 border-b border-gray-200 pb-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -197,7 +197,7 @@ const MilkList = ({
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
             />
           </div>
-          
+
           <div>
             <label htmlFor="sortBy" className="block text-sm font-medium text-gray-700 mb-1">Sắp xếp theo:</label>
             <select
@@ -211,7 +211,7 @@ const MilkList = ({
             </select>
           </div>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label htmlFor="qualityFilter" className="block text-sm font-medium text-gray-700 mb-1">Lọc theo kiểm định:</label>
@@ -226,7 +226,7 @@ const MilkList = ({
               <option value="untested">Chưa kiểm định</option>
             </select>
           </div>
-          
+
           <div>
             <label htmlFor="bribedFilter" className="block text-sm font-medium text-gray-700 mb-1">Lọc theo chất lượng:</label>
             <select
@@ -240,7 +240,7 @@ const MilkList = ({
               <option value="bribed">Chất lượng không đảm bảo</option>
             </select>
           </div>
-          
+
           <div className="flex items-center">
             <input
               id="useColorfulStyles"
@@ -255,18 +255,18 @@ const MilkList = ({
           </div>
         </div>
       </div>
-      
+
       {/* Hiển thị số lượng kết quả */}
       <p className="text-sm text-gray-500 mb-4">
-        Hiển thị {displayedMilks.length} / {milks.length} sản phẩm
+        Hiển thị {displayedItems.length} / {items.length} sản phẩm
       </p>
-      
+
       {/* Danh sách sản phẩm */}
-      {displayedMilks.length > 0 ? (
-        displayedMilks.map(milk => (
-          <MilkItem
-            key={milk.id}
-            milk={milk}
+      {displayedItems.length > 0 ? (
+        displayedItems.map(item => (
+          <Item
+            key={item.id}
+            item={item}
             onRemove={onRemove}
             onOrderChange={onOrderChange}
             useColorfulStyles={useColorfulStyles}
@@ -279,7 +279,7 @@ const MilkList = ({
   );
 };
 
-function App() {
+const App = () => {
   // State cho form nhập thông tin sữa
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -287,12 +287,12 @@ function App() {
   const [selectedImage, setSelectedImage] = useState('');
   const [isQualityTested, setIsQualityTested] = useState(true);
   const [isBribed, setIsBribed] = useState(false);
-  
+
   // State cho danh sách sữa
-  const [milks, setMilks] = useState<Milk[]>([]);
-  
+  const [products, setProducts] = useState<Product[]>([]);
+
   // Danh sách hình ảnh có sẵn
-  const [availableImages] = useState<MilkImage[]>([
+  const [availableImages] = useState<ProductImage[]>([
     { name: "Abbott Grow", path: "/src/assets/images/abbott-grow.jpg" },
     { name: "Cô Gái Hà Lan", path: "/src/assets/images/co-gai-ha-lan.jpg" },
     { name: "Enlene", path: "/src/assets/images/enlene.jpg" },
@@ -313,15 +313,15 @@ function App() {
   }, [selectedImage]);
 
   // Thêm sản phẩm sữa mới
-  const handleAddMilk = (e: React.FormEvent) => {
+  const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!name.trim() || !description.trim() || !imageUrl.trim()) {
       alert('Vui lòng điền đầy đủ thông tin');
       return;
     }
-    
-    const newMilk: Milk = {
+
+    const newItem: Product = {
       id: Date.now().toString(),
       name,
       description,
@@ -330,9 +330,9 @@ function App() {
       isQualityTested,
       isBribed
     };
-    
-    setMilks([...milks, newMilk]);
-    
+
+    setProducts([...products, newItem]);
+
     // Reset form
     setName('');
     setDescription('');
@@ -343,28 +343,28 @@ function App() {
   };
 
   // Xóa sản phẩm sữa
-  const handleRemoveMilk = (id: string) => {
-    setMilks(milks.filter(milk => milk.id !== id));
+  const handleDelete = (id: string) => {
+    setProducts(products.filter(item => item.id !== id));
   };
 
   // Thay đổi số lượng đặt hàng
   const handleOrderChange = (id: string, change: number) => {
-    setMilks(milks.map(milk => 
-      milk.id === id 
-        ? { 
-            ...milk, 
-            numberOfOrder: Math.max(0, milk.numberOfOrder + change) 
-          } 
-        : milk
+    setProducts(products.map(item =>
+      item.id === id
+        ? {
+          ...item,
+          numberOfOrder: Math.max(0, item.numberOfOrder + change)
+        }
+        : item
     ));
   };
 
   return (
     <div className="w-full max-w-5xl mx-auto p-4 md:p-6">
       <h1 className="text-3xl font-bold text-center text-gray-800 mb-4">Thị Trường Sữa</h1>
-      
+
       <div className="bg-white p-6 rounded-xl shadow-md mb-8 border-t-4 border-t-blue-500">
-        <form onSubmit={handleAddMilk}>
+        <form onSubmit={handleCreate}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex flex-col">
               <label htmlFor="name" className="text-sm font-semibold text-gray-700 mb-1">Tên Sản Phẩm</label>
@@ -378,7 +378,7 @@ function App() {
                 required
               />
             </div>
-            
+
             <div className="flex flex-col">
               <label htmlFor="imageSelect" className="text-sm font-semibold text-gray-700 mb-1">Chọn Hình Ảnh</label>
               <select
@@ -395,7 +395,7 @@ function App() {
                 ))}
               </select>
             </div>
-            
+
             <div className="flex flex-col col-span-full">
               <label htmlFor="description" className="text-sm font-semibold text-gray-700 mb-1">Mô Tả</label>
               <textarea
@@ -408,7 +408,7 @@ function App() {
                 required
               />
             </div>
-            
+
             <div className="flex flex-col">
               <label htmlFor="imageUrl" className="text-sm font-semibold text-gray-700 mb-1">URL Hình Ảnh (tùy chọn)</label>
               <input
@@ -420,19 +420,19 @@ function App() {
                 placeholder="Nhập URL hình ảnh"
               />
             </div>
-            
+
             <div className="flex flex-col justify-end">
               {selectedImage && (
                 <div className="flex flex-col items-start mt-2">
-                  <img 
-                    src={selectedImage} 
-                    alt="Ảnh xem trước" 
-                    className="w-20 h-20 object-cover rounded-md shadow-sm" 
+                  <img
+                    src={selectedImage}
+                    alt="Ảnh xem trước"
+                    className="w-20 h-20 object-cover rounded-md shadow-sm"
                   />
                 </div>
               )}
             </div>
-            
+
             <div className="col-span-full">
               <div className="flex flex-wrap gap-6">
                 <div className="flex items-start">
@@ -448,7 +448,7 @@ function App() {
                     <p className="text-xs text-gray-500 italic mt-0.5">Quản lý thị trường đã ghé thăm</p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-start">
                   <input
                     id="isBribed"
@@ -464,10 +464,10 @@ function App() {
                 </div>
               </div>
             </div>
-            
+
             <div className="col-span-full mt-2">
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-6 rounded-md font-semibold transition-colors shadow-sm"
               >
                 Thêm Sản Phẩm
@@ -476,10 +476,10 @@ function App() {
           </div>
         </form>
       </div>
-      
-      <MilkList 
-        milks={milks} 
-        onRemove={handleRemoveMilk} 
+
+      <List
+        items={products}
+        onRemove={handleDelete}
         onOrderChange={handleOrderChange}
       />
     </div>
